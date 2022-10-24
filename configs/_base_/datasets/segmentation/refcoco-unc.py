@@ -31,7 +31,7 @@ test_pipeline = val_pipeline.copy()
 
 word_emb_cfg = dict(type='GloVe')
 data = dict(
-    samples_per_gpu=128,
+    samples_per_gpu=2,
     workers_per_gpu=4,
     train=dict(
         type=dataset,

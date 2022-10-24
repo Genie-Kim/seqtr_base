@@ -85,7 +85,8 @@ class LoadImageAnnotationsFromFile(object):
         # choice always the same if 'val'/'test'/'testA'/'testB'
         expression = expressions[numpy.random.choice(len(expressions))]
         expression = clean_string(expression)
-
+        
+        # tokenize part
         ref_expr_inds = torch.zeros(self.max_token, dtype=torch.long)
         for idx, word in enumerate(expression.split()):
             if word in results['token2idx']:

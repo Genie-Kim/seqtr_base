@@ -206,3 +206,24 @@ Our codes are highly modularized and flexible to be extended to new architecture
 ## Acknowledgement
 
 Our code is built upon the open-sourced [mmcv](https://github.com/open-mmlab/mmcv), [mmdetection](https://github.com/open-mmlab/mmdetection) and [detectron2](https://github.com/facebookresearch/detectron2) libraries. 
+
+## Jin Installation
+
+Installation script for my environment.
+
+```
+conda create -n seqtr -y python=3.8
+conda activate seqtr
+conda install -y pytorch==1.11.0 torchvision==0.12.0 torchaudio==0.11.0 cudatoolkit=11.3 -c pytorch
+pip install mmcv-full -f https://download.openmmlab.com/mmcv/dist/cu113/torch1.11/index.html
+pip install ftfy regex tqdm greenlet gevent Wand tensorboard
+pip install git+https://github.com/openai/CLIP.git
+git clone https://github.com/Genie-Kim/seqtr_base.git
+cd seqtr_base
+pip install -r requirements.txt
+wget https://github.com/explosion/spacy-models/releases/download/en_vectors_web_lg-2.1.0/en_vectors_web_lg-2.1.0.tar.gz -O en_vectors_web_lg-2.1.0.tar.gz
+pip install en_vectors_web_lg-2.1.0.tar.gz
+pip install -v -e .
+conda install -y scikit-image
+pip install mmsegmentation
+```
