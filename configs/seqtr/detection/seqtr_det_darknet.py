@@ -4,7 +4,7 @@ model = dict(
     type='SeqTR',
     vis_enc=dict(
         type='DarkNet53',
-        pretrained='./data/weights/darknet.weights',
+        pretrained='./pretrain/darknet.weights',
         freeze_layer=2,
         out_layer=(6, 8, 13, )
     ),

@@ -7,12 +7,11 @@ from mmcv.utils import print_log
 
 from mmseg.utils import get_root_logger
 from mmseg.ops import resize
-from ..builder import HEADS, build_head, build_backbone
-from .decode_head import BaseDecodeHead
+from ..builder import MODELS, build_head, build_vis_enc
+from .one_stage import OneStageModel
 
-
-@HEADS.register_module()
-class MaskClipPlusHead(BaseDecodeHead):
+@MODELS.register_module()
+class MaskClipPlus(OneStageModel):
 
     def __init__(self, decode_module_cfg, text_categories, text_channels, 
                     text_embeddings_path, cls_bg=False, norm_feat=False, 
@@ -21,9 +20,8 @@ class MaskClipPlusHead(BaseDecodeHead):
                     clip_weights_path=None, reset_counter=False, clip_channels=None, 
                     vit=False, ks_thresh=0., pd_thresh=0., conf_thresh=0., 
                     distill=False, distill_labeled=True, distill_weight=1., **kwargs):
-        super(MaskClipPlusHead, self).__init__(
+        super(MaskClipPlus, self).__init__(
             input_transform=decode_module_cfg.pop('input_transform'), **kwargs)
-        self.text_categories = text_categories
         self.text_channels = text_channels
         self.text_embeddings_path = text_embeddings_path
         self.norm_feat = norm_feat
@@ -54,7 +52,7 @@ class MaskClipPlusHead(BaseDecodeHead):
 
         self.vit = vit
         if self.clip_guided:
-            self.clip = build_backbone(clip_cfg)
+            self.clip = build_vis_enc(clip_cfg)
             self.ks_thresh = ks_thresh
             self.pd_thresh = pd_thresh
             self.conf_thresh = conf_thresh
@@ -70,7 +68,7 @@ class MaskClipPlusHead(BaseDecodeHead):
 
     def init_weights(self, call_super=True):
         if call_super:
-            super(MaskClipPlusHead, self).init_weights()
+            super(MaskClipPlus, self).init_weights()
         self.load_text_embeddings()
         if self.clip_guided:
             self.load_clip_weights()
@@ -95,7 +93,7 @@ class MaskClipPlusHead(BaseDecodeHead):
 
     def _freeze(self):
         """Freeze params and norm stats."""
-        super(MaskClipPlusHead, self)._freeze()
+        super(MaskClipPlus, self)._freeze()
         # always freeze these modules
         if self.clip_guided:
             attrs = ['proj'] if self.vit else ['q_proj', 'k_proj', 'v_proj', 'c_proj']

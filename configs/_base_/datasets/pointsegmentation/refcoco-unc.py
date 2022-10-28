@@ -1,7 +1,7 @@
 dataset = 'RefCOCOUNC'
 data_root = './data/'
 img_norm_cfg = dict(
-    mean=[123.675, 116.28, 103.53], std=[58.395, 57.12, 57.375], to_rgb=True)
+    mean=[0., 0., 0.], std=[1., 1., 1.])
 
 train_pipeline = [
     dict(type='LoadImageAnnotationsFromFile',
@@ -10,9 +10,12 @@ train_pipeline = [
          jitter_min=0.3, jitter_max=1.4),
     # dict(type='Resize', img_scale=(640, 640)),
     dict(type='Normalize', **img_norm_cfg),
+    dict(type='Pad', size_divisor=32),
+    dict(type='SampleMaskVertices', num_ray=18, center_sampling=False),
     dict(type='DefaultFormatBundle'),
     dict(type='CollectData', keys=[
-         'img', 'ref_expr_inds','gt_mask'])
+         'img', 'ref_expr_inds',
+         'gt_mask_rle', 'is_crowd', 'gt_mask_vertices', 'mass_center'])
 ]
 val_pipeline = [
     dict(type='LoadImageAnnotationsFromFile',
@@ -22,7 +25,7 @@ val_pipeline = [
     dict(type='Pad', size_divisor=32),
     dict(type='DefaultFormatBundle'),
     dict(type='CollectData', keys=[
-         'img', 'ref_expr_inds','gt_mask'])
+         'img', 'ref_expr_inds', 'is_crowd', 'gt_mask_rle'])
 ]
 test_pipeline = val_pipeline.copy()
 

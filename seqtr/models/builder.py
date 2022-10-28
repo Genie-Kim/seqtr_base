@@ -1,11 +1,12 @@
 from mmcv.utils import Registry
+from mmcv.cnn import MODELS as MMCV_MODELS
 
+MODELS = Registry('models', parent=MMCV_MODELS)
 
-VIS_ENCODERS = Registry('VIS_ENCS')
-LAN_ENCODERS = Registry('LAN_ENCS')
-MODELS = Registry('MODELS')
-FUSIONS = Registry('FUSIONS')
-HEADS = Registry('HEADS')
+VIS_ENCODERS = MODELS
+LAN_ENCODERS = MODELS
+FUSIONS = MODELS
+HEADS = MODELS
 
 
 def build_vis_enc(cfg):

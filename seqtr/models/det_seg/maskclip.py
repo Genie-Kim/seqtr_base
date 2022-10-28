@@ -2,19 +2,19 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-
+nn.Conv2d
 from mmcv.utils import print_log
 from mmseg.utils import get_root_logger
-from ..builder import HEADS
-from .decode_head import BaseDecodeHead
+from ..builder import MODELS
+from .one_stage import OneStageModel
 
-@HEADS.register_module()
-class MaskClipHead(nn.Module):
+@MODELS.register_module()
+class MaskClip(OneStageModel):
 
     def __init__(self, text_categories, text_channels, text_embeddings_path,
                     visual_projs_path, vit=False, ks_thresh=0., pd_thresh=0.,
                     attn_pooling=False, num_heads=32, **kwargs):
-        super(MaskClipHead, self).__init__(**kwargs)
+        super(MaskClip, self).__init__(**kwargs)
 
         self.text_categories = text_categories
         self.text_channels = text_channels
@@ -44,7 +44,7 @@ class MaskClipHead(nn.Module):
         self.num_heads = num_heads
 
     def init_weights(self):
-        super(MaskClipHead, self).init_weights()
+        super(MaskClip, self).init_weights()
         if self.text_embeddings_path is None:
             nn.init.normal_(self.text_embeddings, mean=0.0, std=0.01)
         else:

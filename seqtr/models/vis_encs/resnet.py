@@ -7,8 +7,8 @@ from mmcv.cnn import build_conv_layer, build_norm_layer, build_plugin_layer
 from mmcv.runner import BaseModule
 from mmcv.utils.parrots_wrapper import _BatchNorm
 
-from ..builder import BACKBONES
-from ..utils import ResLayer
+from ..builder import VIS_ENCODERS
+from ..utils.res_layer import ResLayer
 
 
 class BasicBlock(BaseModule):
@@ -314,7 +314,7 @@ class Bottleneck(BaseModule):
         return out
 
 
-@BACKBONES.register_module()
+@VIS_ENCODERS.register_module()
 class ResNet(BaseModule):
     """ResNet backbone.
 
@@ -699,7 +699,7 @@ class ResNet(BaseModule):
                     m.eval()
 
 
-@BACKBONES.register_module()
+@VIS_ENCODERS.register_module()
 class ResNetV1c(ResNet):
     """ResNetV1c variant described in [1]_.
 
@@ -714,7 +714,7 @@ class ResNetV1c(ResNet):
             deep_stem=True, avg_down=False, **kwargs)
 
 
-@BACKBONES.register_module()
+@VIS_ENCODERS.register_module()
 class ResNetV1d(ResNet):
     """ResNetV1d variant described in [1]_.
 
@@ -728,7 +728,7 @@ class ResNetV1d(ResNet):
             deep_stem=True, avg_down=True, **kwargs)
 
 
-@BACKBONES.register_module()
+@VIS_ENCODERS.register_module()
 class ResNetMaskClip(ResNet):
 
     def __init__(self, **kwargs):

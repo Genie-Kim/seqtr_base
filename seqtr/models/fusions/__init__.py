@@ -1,1 +1,2 @@
-from .fusion import SimpleFusion
+from .fusion import SimpleFusion, ClipFusion
+

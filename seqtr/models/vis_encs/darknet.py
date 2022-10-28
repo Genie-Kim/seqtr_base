@@ -3,7 +3,7 @@ from mmcv.cnn import ConvModule
 from mmcv.runner import force_fp32
 from seqtr.models import VIS_ENCODERS
 from seqtr.utils import get_root_logger, is_main
-from seqtr.models.utils import freeze_params, parse_yolo_weights
+from seqtr.models.utils.seqtr_utils import freeze_params, parse_yolo_weights
 
 
 def darknet_conv(in_chs,
@@ -52,7 +52,7 @@ class DarknetBlock(nn.Module):
 class DarkNet53(nn.Module):
     def __init__(self,
                  freeze_layer=2,
-                 pretrained='./data/weights/darknet.weights',
+                 pretrained='./pretrain/darknet.weights',
                  out_layer=(6, 8, 13)):
         super(DarkNet53, self).__init__()
         self.fp16_enabled = False

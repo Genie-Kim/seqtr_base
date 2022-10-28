@@ -5,4 +5,4 @@ from .fusions import *
 from .heads import *
 from .lan_encs import *
 from .vis_encs import *
-from .utils import ExponentialMovingAverage
+from .utils.seqtr_utils import ExponentialMovingAverage

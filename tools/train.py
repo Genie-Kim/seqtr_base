@@ -20,7 +20,6 @@ try:
 except:
     pass
 
-
 def parse_args():
     parser = argparse.ArgumentParser(description="SeqTR-train")
     parser.add_argument('config', help='training configuration file path.')

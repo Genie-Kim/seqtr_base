@@ -76,3 +76,17 @@ class SimpleFusion(nn.Module):
         x_multi_modal = self.activate(x_vis_enc) * self.activate(y_2d)
 
         return x_multi_modal
+
+
+@FUSIONS.register_module()
+class ClipFusion(nn.Module):
+    def __init__(self):
+        super(ClipFusion, self).__init__()
+
+
+    def forward(self, x, y):
+        x_vis_enc = x
+        y_2d = y.squeeze().unsqueeze(-1).unsqueeze(-1)
+        x_multi_modal = self.activate(x_vis_enc) * self.activate(y_2d)
+
+        return x_multi_modal

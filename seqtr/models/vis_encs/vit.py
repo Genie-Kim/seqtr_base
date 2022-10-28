@@ -17,8 +17,8 @@ import torch.nn.functional as F # for maskclip
 
 from mmseg.ops import resize
 from mmseg.utils import get_root_logger
-from ..builder import BACKBONES
-from ..utils import PatchEmbed
+from ..builder import VIS_ENCODERS
+from mmseg.models.utils.embed import PatchEmbed
 
 
 class TransformerEncoderLayer(BaseModule):
@@ -123,7 +123,7 @@ class TransformerEncoderLayer(BaseModule):
         return x
 
 
-@BACKBONES.register_module()
+@VIS_ENCODERS.register_module()
 class VisionTransformer(BaseModule):
     """Vision Transformer.
 
@@ -441,13 +441,13 @@ class VisionTransformer(BaseModule):
                     m.eval()
 
 # For MaskClip (ECCV 2022)
-class TransformerEncoderLayerMaskclip(TransformerEncoderLayer):
+class TransformerEncoderLayerMaskClip(TransformerEncoderLayer):
     """
     TransformerEncoderLayer for MaskClip.
     """
 
     def __init__(self, **kwargs):
-        super(TransformerEncoderLayerMaskclip, self).__init__(**kwargs)
+        super(TransformerEncoderLayerMaskClip, self).__init__(**kwargs)
 
     def forward(self, x, return_qkv=False):
 
@@ -478,8 +478,8 @@ class TransformerEncoderLayerMaskclip(TransformerEncoderLayer):
         return x, q, k, v
 
 
-@BACKBONES.register_module()
-class VisionTransformerMaskclip(BaseModule):
+@VIS_ENCODERS.register_module()
+class VisionTransformerMaskClip(BaseModule):
     """
     Vision Transformer For MaskClip(ECCV 2022).
     """
@@ -513,7 +513,7 @@ class VisionTransformerMaskclip(BaseModule):
                  with_cp=False,
                  pretrained=None,
                  init_cfg=None):
-        super(VisionTransformerMaskclip, self).__init__(init_cfg=init_cfg)
+        super(VisionTransformerMaskClip, self).__init__(init_cfg=init_cfg)
 
         if isinstance(img_size, int):
             img_size = to_2tuple(img_size)
@@ -582,7 +582,7 @@ class VisionTransformerMaskclip(BaseModule):
         self.layers = ModuleList()
         for i in range(num_layers):
             self.layers.append(
-                TransformerEncoderLayerMaskclip(
+                TransformerEncoderLayerMaskClip(
                     embed_dims=embed_dims,
                     num_heads=num_heads,
                     feedforward_channels=mlp_ratio * embed_dims,
@@ -659,7 +659,7 @@ class VisionTransformerMaskclip(BaseModule):
 
             load_state_dict(self, state_dict, strict=False, logger=logger)
         elif self.init_cfg is not None:
-            super(VisionTransformerMaskclip, self).init_weights()
+            super(VisionTransformerMaskClip, self).init_weights()
         else:
             # We only implement the 'jax_impl' initialization implemented at
             # https://github.com/rwightman/pytorch-image-models/blob/master/timm/models/vision_transformer.py#L353  # noqa: E501
@@ -802,7 +802,7 @@ class VisionTransformerMaskclip(BaseModule):
         return tuple(outs)
 
     def train(self, mode=True):
-        super(VisionTransformerMaskclip, self).train(mode)
+        super(VisionTransformerMaskClip, self).train(mode)
         if mode and self.norm_eval:
             for m in self.modules():
                 if isinstance(m, nn.LayerNorm):
