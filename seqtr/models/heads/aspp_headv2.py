@@ -5,7 +5,7 @@ from mmcv.cnn import ConvModule
 
 from ..builder import HEADS
 from mmseg.models.decode_heads.decode_head import BaseDecodeHead
-
+from mmcv.runner import BaseModule
 
 class ASPPModuleV2(nn.ModuleList):
     """Atrous Spatial Pyramid Pooling (ASPP) Module.
@@ -59,11 +59,11 @@ class ASPPHeadV2(BaseDecodeHead):
             Default: (6, 12, 18, 24).
     """
 
-    def __init__(self, dilations=(6, 12, 18, 24), **kwargs):
+    def __init__(self, dilations=(6, 12, 18, 24),residual=False, **kwargs):
         super(ASPPHeadV2, self).__init__(**kwargs)
         assert isinstance(dilations, (list, tuple))
         self.dilations = dilations
-        self.residual = kwargs['residual']
+        self.residual = residual
         self.aspp_modules = ASPPModuleV2(
             dilations,
             self.in_channels,
@@ -79,9 +79,9 @@ class ASPPHeadV2(BaseDecodeHead):
         return output
 
     def forward_module(self, inputs):
-        x = self._transform_inputs(inputs)
-        aspp_outs = self.aspp_modules(x)
+        # x = self._transform_inputs(inputs)
+        aspp_outs = self.aspp_modules(inputs)
         output = sum(aspp_outs)
         if self.residual:
-            output = torch.add(output,x)
+            output = torch.add(output,inputs)
         return output

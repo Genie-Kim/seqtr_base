@@ -18,8 +18,7 @@ class OneStageModel(BaseModel):
                  fusion):
         super(OneStageModel, self).__init__()
         self.vis_enc = build_vis_enc(vis_enc)
-        self.lan_enc = build_lan_enc(lan_enc, {'word_emb': word_emb,
-                                               'num_token': num_token})
+        self.lan_enc = build_lan_enc(lan_enc)
         self.head = build_head(head)
         self.fusion = build_fusion(fusion)
 

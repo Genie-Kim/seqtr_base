@@ -15,13 +15,13 @@ class BaseModel(BaseModule, metaclass=ABCMeta):
             img_meta['batch_input_shape'] = batch_input_shape
 
     @auto_fp16(apply_to=('img', ))
-    def forward(self, img, ref_expr_inds, img_metas, return_loss=True, **kwargs):
+    def forward(self, img, ref_expr, img_metas, return_loss=True, **kwargs):
         """Calls either :func:`forward_train` or :func:`forward_test` depending
             on whether ``return_loss`` is ``True``.
         """
         self.add_batch_input_shape(img, img_metas)
 
         if return_loss:
-            return self.forward_train(img, ref_expr_inds, img_metas, **kwargs)
+            return self.forward_train(img, ref_expr, img_metas, **kwargs)
         else:
-            return self.forward_test(img, ref_expr_inds, img_metas, **kwargs)
+            return self.forward_test(img, ref_expr, img_metas, **kwargs)

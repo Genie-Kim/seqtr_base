@@ -84,9 +84,11 @@ class ClipFusion(nn.Module):
         super(ClipFusion, self).__init__()
 
 
-    def forward(self, x, y):
-        x_vis_enc = x
-        y_2d = y.squeeze().unsqueeze(-1).unsqueeze(-1)
-        x_multi_modal = self.activate(x_vis_enc) * self.activate(y_2d)
+    def forward(self, feat, text):
+        # if self.dropout is not None:
+        #     feat = self.dropout(x)
+        # if self.norm_feat:
+        #     feat = feat / feat.norm(dim=1, keepdim=True)
+        x_multi_modal = F.conv2d(feat, text[:, :, None, None])
 
         return x_multi_modal

@@ -46,13 +46,15 @@ def train_model(epoch,
     batches = len(loader)
     end = time.time()
 
-    det_acc_list, mask_iou_list, mask_acc_list = [], [], []
-    loss_det_list, loss_mask_list = [], []
+    mask_iou_list, mask_acc_list = [], []
+    # det_acc_list, mask_iou_list, mask_acc_list = [], [], []
+    # loss_det_list, loss_mask_list = [], []
+    loss_mask_list = []
     for batch, inputs in enumerate(loader):
         data_time = time.time() - end
         gt_bbox, gt_mask, is_crowd = None, None, None
-        if 'gt_bbox' in inputs:
-            gt_bbox = copy.deepcopy(inputs['gt_bbox'].data[0])
+        # if 'gt_bbox' in inputs:
+        #     gt_bbox = copy.deepcopy(inputs['gt_bbox'].data[0])
         if 'gt_mask_rle' in inputs:
             gt_mask = inputs.pop('gt_mask_rle').data[0]
         if 'is_crowd' in inputs:
@@ -63,9 +65,9 @@ def train_model(epoch,
 
         losses, predictions = model(**inputs, rescale=False)
 
-        loss_det = losses.pop('loss_det', torch.tensor([0.], device=device))
-        loss_mask = losses.pop('loss_mask', torch.tensor([0.], device=device))
-        loss = loss_det + loss_mask
+        # loss_det = losses.pop('loss_det', torch.tensor([0.], device=device))
+        loss_mask = losses.pop('loss_ce', torch.tensor([0.], device=device))
+        loss = loss_mask
 
         optimizer.zero_grad()
         if cfg.use_fp16:
@@ -73,6 +75,7 @@ def train_model(epoch,
                 scaled_loss.backward()
         else:
             loss.backward()
+            
         if cfg.grad_norm_clip:
             torch.nn.utils.clip_grad_norm_(
                 model.parameters(),
@@ -84,27 +87,27 @@ def train_model(epoch,
             model_ema.update_params()
 
         if cfg.distributed:
-            loss_det = reduce_mean(loss_det)
+            # loss_det = reduce_mean(loss_det)
             loss_mask = reduce_mean(loss_mask)
 
-        pred_bboxes = predictions.pop('pred_bboxes')
+        # pred_bboxes = predictions.pop('pred_bboxes')
         pred_masks = predictions.pop('pred_masks')
 
         with torch.no_grad():
-            batch_det_acc, batch_mask_iou, batch_mask_acc_at_thrs = accuracy(
-                pred_bboxes, gt_bbox, pred_masks, gt_mask, is_crowd=is_crowd, device=device)
+            _, batch_mask_iou, batch_mask_acc_at_thrs = accuracy(
+                None, gt_bbox, pred_masks, gt_mask, is_crowd=is_crowd, device=device)
             if cfg.distributed:
-                batch_det_acc = reduce_mean(batch_det_acc)
+                # batch_det_acc = reduce_mean(batch_det_acc)
                 batch_mask_iou = reduce_mean(batch_mask_iou)
                 batch_mask_acc_at_thrs = reduce_mean(batch_mask_acc_at_thrs)
 
-        det_acc_list.append(batch_det_acc.item())
+        # det_acc_list.append(batch_det_acc.item())
         mask_iou_list.append(batch_mask_iou)
         mask_acc_list.append(batch_mask_acc_at_thrs)
-        loss_det_list.append(loss_det.item())
+        # loss_det_list.append(loss_det.item())
         loss_mask_list.append(loss_mask.item())
 
-        det_acc = sum(det_acc_list) / len(det_acc_list)
+        # det_acc = sum(det_acc_list) / len(det_acc_list)
         mask_iou = torch.cat(mask_iou_list).mean().item()
         mask_acc = torch.vstack(
             mask_acc_list).mean(dim=0).tolist()
@@ -113,12 +116,20 @@ def train_model(epoch,
                 logger = get_root_logger()
                 logger.info(f"train - epoch [{epoch+1}]-[{batch+1}/{batches}] " +
                             f"time: {(time.time()- end):.2f}, data_time: {data_time:.2f}, " +
-                            f"loss_det: {sum(loss_det_list) / len(loss_det_list) :.4f}, " +
                             f"loss_mask: {sum(loss_mask_list) / len(loss_mask_list):.4f}, " +
                             f"lr: {optimizer.param_groups[0]['lr']:.6f}, " +
-                            f"DetACC@0.5: {det_acc:.2f}, " +
                             f"mIoU: {mask_iou:.2f}, " +
                             f"MaskACC@0.5-0.9: [{mask_acc[0]:.2f}, {mask_acc[1]:.2f}, {mask_acc[2]:.2f},  {mask_acc[3]:.2f},  {mask_acc[4]:.2f}]"
-                            )
+                            )             
+                
+                # logger.info(f"train - epoch [{epoch+1}]-[{batch+1}/{batches}] " +
+                #             f"time: {(time.time()- end):.2f}, data_time: {data_time:.2f}, " +
+                #             f"loss_det: {sum(loss_det_list) / len(loss_det_list) :.4f}, " +
+                #             f"loss_mask: {sum(loss_mask_list) / len(loss_mask_list):.4f}, " +
+                #             f"lr: {optimizer.param_groups[0]['lr']:.6f}, " +
+                #             f"DetACC@0.5: {det_acc:.2f}, " +
+                #             f"mIoU: {mask_iou:.2f}, " +
+                #             f"MaskACC@0.5-0.9: [{mask_acc[0]:.2f}, {mask_acc[1]:.2f}, {mask_acc[2]:.2f},  {mask_acc[3]:.2f},  {mask_acc[4]:.2f}]"
+                #             )
 
         end = time.time()

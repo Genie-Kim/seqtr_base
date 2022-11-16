@@ -5,14 +5,12 @@ import torch
 import os.path as osp
 from mmdet.core import BitmapMasks
 import pycocotools.mask as maskUtils
-
-
+from clip import tokenize as clip_tokenizer
+from seqtr.datasets.utils import tokenize as tokenizer
+6
 from ..builder import PIPELINES
 
-
-def clean_string(expression):
-    return re.sub(r"([.,'!?\"()*#:;])", '', expression.lower()).replace('-', ' ').replace('/', ' ')
-
+import clip
 
 @PIPELINES.register_module()
 class LoadImageAnnotationsFromFile(object):
@@ -40,7 +38,9 @@ class LoadImageAnnotationsFromFile(object):
                  file_client_cfg=dict(backend='disk'),
                  max_token=15,
                  with_bbox=False,
-                 with_mask=False):
+                 with_mask=False,
+                 word_emb_cfg = None,
+                 ignore_background_label = False):
         self.color_type = color_type
         self.backend = backend
         self.file_client_cfg = file_client_cfg.copy()
@@ -52,7 +52,19 @@ class LoadImageAnnotationsFromFile(object):
         assert dataset in ['RefCOCOUNC', 'RefCOCOGoogle', 'RefCOCOgUMD',
                            'RefCOCOgGoogle', 'RefCOCOPlusUNC', 'ReferItGameBerkeley', 'Flickr30k', 'Mixed']
         self.dataset = dataset
-
+        self.word_emb_cfg =word_emb_cfg
+        self.ignore_background_label  = ignore_background_label
+    
+    
+    def _tokenize(self,expression,context_length, word_emb_cfg):
+        assert word_emb_cfg is not None
+        if word_emb_cfg.type == 'clip':
+            return clip_tokenizer(expression,context_length,True) # set truncate True
+        else:
+            return tokenizer(expression,context_length, word_emb_cfg)
+            
+    
+    
     def _load_img(self, results):
         if self.file_client is None:
             self.file_client = mmcv.FileClient(**self.file_client_cfg)
@@ -84,19 +96,10 @@ class LoadImageAnnotationsFromFile(object):
         expressions = results['ann']['expressions']
         # choice always the same if 'val'/'test'/'testA'/'testB'
         expression = expressions[numpy.random.choice(len(expressions))]
-        expression = clean_string(expression)
         
-        # tokenize part
-        ref_expr_inds = torch.zeros(self.max_token, dtype=torch.long)
-        for idx, word in enumerate(expression.split()):
-            if word in results['token2idx']:
-                ref_expr_inds[idx] = results['token2idx'][word]
-            else:
-                ref_expr_inds[idx] = results['token2idx']['UNK']
-            if idx + 1 == self.max_token:
-                break
+        ref_expr = self._tokenize(expression,self.max_token,self.word_emb_cfg)
 
-        results['ref_expr_inds'] = ref_expr_inds
+        results['ref_expr'] = ref_expr
         results['expression'] = expression
         results['max_token'] = self.max_token
         return results
@@ -130,6 +133,11 @@ class LoadImageAnnotationsFromFile(object):
             else:
                 rle = mask
             mask = maskUtils.decode(rle)
+            if self.ignore_background_label:
+                temp = mask[None]
+                temp[temp == 0] = 255
+                mask[None] = temp
+            
             mask = BitmapMasks(mask[None], h, w)
             results['gt_mask'] = mask
             results['gt_mask_rle'] = rle  # {'size':, 'counts'}

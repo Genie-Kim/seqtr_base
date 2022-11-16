@@ -73,13 +73,21 @@ class DefaultFormatBundle:
         if 'ref_expr_inds' in results:
             results['ref_expr_inds'] = DataContainer(
                 to_tensor(results['ref_expr_inds']), stack=True, pad_dims=None)
+            
+        if 'ref_expr' in results:
+            results['ref_expr'] = DataContainer(
+                to_tensor(results['ref_expr']), stack=True, pad_dims=None)
 
         if results['with_bbox']:
             results['gt_bbox'] = DataContainer(to_tensor(results['gt_bbox']))
 
         if results['with_mask']:
-            results['gt_mask'] = DataContainer(
-                results['gt_mask'], cpu_only=True)
+            # results['gt_mask'] = DataContainer(results['gt_mask'], cpu_only=True)
+            # results['gt_mask'] = DataContainer(results['gt_mask'])
+            gtmask = results['gt_mask'].to_ndarray()
+            results['gt_mask'] = DataContainer(to_tensor(gtmask), stack=True)
+            if len(img.shape) < 3:
+                img = numpy.expand_dims(img, -1)
             if 'gt_mask_rle' in results:
                 results['gt_mask_rle'] = DataContainer(
                     results['gt_mask_rle'], cpu_only=True, pad_dims=None)

@@ -134,57 +134,76 @@ def build_word_emb_loader(cfg):
     return word_emb_loader
 
 
-def tokenize(annsfile, anns_all, word_emb_cfg=None):
-    annsdir = osp.dirname(annsfile)
-    token2ix_path = osp.join(annsdir, 'token_to_ix.pkl')
-    ix2token_path = osp.join(annsdir, 'ix_to_token.pkl')
-    word_emb_path = osp.join(annsdir, 'word_emb.npz')
-    if osp.exists(token2ix_path) and osp.exists(ix2token_path) and osp.exists(word_emb_path):
-        with open(token2ix_path, 'rb') as handle:
-            token2ix = pickle.load(handle)
-        with open(ix2token_path, 'rb') as handle:
-            ix2token = pickle.load(handle)
-        npz = numpy.load(word_emb_path, allow_pickle=True)
-        return token2ix, ix2token, npz['word_emb']
-    else:
-        token2ix = {
-            'PAD': 0,
-            'UNK': 1,
-            'CLS': 2,
-        }
+# def tokenize(annsfile, anns_all, word_emb_cfg=None):
+#     annsdir = osp.dirname(annsfile)
+#     token2ix_path = osp.join(annsdir, 'token_to_ix.pkl')
+#     ix2token_path = osp.join(annsdir, 'ix_to_token.pkl')
+#     word_emb_path = osp.join(annsdir, 'word_emb.npz')
+#     if osp.exists(token2ix_path) and osp.exists(ix2token_path) and osp.exists(word_emb_path):
+#         with open(token2ix_path, 'rb') as handle:
+#             token2ix = pickle.load(handle)
+#         with open(ix2token_path, 'rb') as handle:
+#             ix2token = pickle.load(handle)
+#         npz = numpy.load(word_emb_path, allow_pickle=True)
+#         return token2ix, ix2token, npz['word_emb']
+#     else:
+#         token2ix = {
+#             'PAD': 0,
+#             'UNK': 1,
+#             'CLS': 2,
+#         }
 
-        word_emb = []
-        word_emb_loader = build_word_emb_loader(word_emb_cfg)
+#         word_emb = []
+#         word_emb_loader = build_word_emb_loader(word_emb_cfg)
+#         if word_emb_loader:
+#             word_emb.append(word_emb_loader('PAD').vector)
+#             word_emb.append(word_emb_loader('UNK').vector)
+#             word_emb.append(word_emb_loader('CLS').vector)
+
+#         for which_set in anns_all:
+#             for anns_which_set in anns_all[which_set]:
+#                 for expression in anns_which_set['expressions']:
+#                     words = re.sub(
+#                         r"([.,'!?\"()*#:;])",
+#                         '',
+#                         expression.lower()
+#                     ).replace('-', ' ').replace('/', ' ').split()
+
+#                     for word in words:
+#                         if word not in token2ix:
+#                             token2ix[word] = len(token2ix)
+#                             if word_emb_loader:
+#                                 word_emb.append(word_emb_loader(word).vector)
+
+#         ix2token = {}
+#         for token in token2ix:
+#             ix2token[token2ix[token]] = token
+
+#         word_emb = numpy.array(word_emb)
+
+#         with open(token2ix_path, 'wb') as handle:
+#             pickle.dump(token2ix, handle, protocol=pickle.HIGHEST_PROTOCOL)
+#         with open(ix2token_path, 'wb') as handle:
+#             pickle.dump(ix2token, handle, protocol=pickle.HIGHEST_PROTOCOL)
+#         numpy.savez_compressed(word_emb_path,
+#                                word_emb=word_emb)
+#         return token2ix, ix2token, word_emb
+
+
+def tokenize(expression,context_length,word_emb_cfg):
+    word_emb_loader = build_word_emb_loader(word_emb_cfg)
+    expression = re.sub(
+        r"([.,'!?\"()*#:;])",
+        '',
+        expression.lower()
+    ).replace('-', ' ').replace('/', ' ')
+
+    ref_expr = torch.zeros(context_length, dtype=torch.long)
+    for idx, word in enumerate(expression.split()):
         if word_emb_loader:
-            word_emb.append(word_emb_loader('PAD').vector)
-            word_emb.append(word_emb_loader('UNK').vector)
-            word_emb.append(word_emb_loader('CLS').vector)
-
-        for which_set in anns_all:
-            for anns_which_set in anns_all[which_set]:
-                for expression in anns_which_set['expressions']:
-                    words = re.sub(
-                        r"([.,'!?\"()*#:;])",
-                        '',
-                        expression.lower()
-                    ).replace('-', ' ').replace('/', ' ').split()
-
-                    for word in words:
-                        if word not in token2ix:
-                            token2ix[word] = len(token2ix)
-                            if word_emb_loader:
-                                word_emb.append(word_emb_loader(word).vector)
-
-        ix2token = {}
-        for token in token2ix:
-            ix2token[token2ix[token]] = token
-
-        word_emb = numpy.array(word_emb)
-
-        with open(token2ix_path, 'wb') as handle:
-            pickle.dump(token2ix, handle, protocol=pickle.HIGHEST_PROTOCOL)
-        with open(ix2token_path, 'wb') as handle:
-            pickle.dump(ix2token, handle, protocol=pickle.HIGHEST_PROTOCOL)
-        numpy.savez_compressed(word_emb_path,
-                               word_emb=word_emb)
-        return token2ix, ix2token, word_emb
+            ref_expr[idx]= word_emb_loader(word).vector
+        else:
+            ref_expr[idx] = word_emb_loader('UNK').vector
+        if idx + 1 == context_length:
+            break
+    return ref_expr

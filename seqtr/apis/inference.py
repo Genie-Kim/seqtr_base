@@ -22,9 +22,7 @@ def inference_model(cfg):
     dataloaders = list(
         map(lambda dataset: build_dataloader(cfg, dataset), datasets))
 
-    model = build_model(cfg.model,
-                        word_emb=datasets[0].word_emb,
-                        num_token=datasets[0].num_token)
+    model = build_model(cfg.model)
     model = model.cuda()
     if cfg.use_fp16:
         model = apex.amp.initialize(

@@ -11,6 +11,13 @@ def freeze_params(model):
         for param in model.parameters():
             param.requires_grad = False
 
+def freeze_all(model):
+    """Freeze params and norm stats."""
+    for m in model.modules():
+        m.eval()
+        for param in m.parameters():
+            param.requires_grad = False
+
 
 def parse_conv_block(m, weights, offset, initflag):
     """Args:

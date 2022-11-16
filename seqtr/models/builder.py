@@ -14,7 +14,7 @@ def build_vis_enc(cfg):
     return VIS_ENCODERS.build(cfg)
 
 
-def build_lan_enc(cfg, default_args):
+def build_lan_enc(cfg, default_args=None):
     """Build lan_enc."""
     return LAN_ENCODERS.build(cfg, default_args=default_args)
 
@@ -29,9 +29,7 @@ def build_head(cfg):
     return HEADS.build(cfg)
 
 
-def build_model(cfg, word_emb=None, num_token=-1):
+def build_model(cfg,default_args=None):
     """Build model."""
-    model = MODELS.build(cfg, default_args=dict(
-        word_emb=word_emb, num_token=num_token))
-
+    model = MODELS.build(cfg,default_args=default_args)
     return model

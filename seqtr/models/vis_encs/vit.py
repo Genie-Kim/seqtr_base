@@ -20,6 +20,8 @@ from mmseg.utils import get_root_logger
 from ..builder import VIS_ENCODERS
 from mmseg.models.utils.embed import PatchEmbed
 
+from seqtr.models.utils.seqtr_utils import freeze_params, freeze_all
+
 
 class TransformerEncoderLayer(BaseModule):
     """Implements one encoder layer in Vision Transformer.
@@ -512,7 +514,9 @@ class VisionTransformerMaskClip(BaseModule):
                  norm_eval=False,
                  with_cp=False,
                  pretrained=None,
-                 init_cfg=None):
+                 init_cfg=None,
+                 freeze_layer = None,
+                 do_train = True):
         super(VisionTransformerMaskClip, self).__init__(init_cfg=init_cfg)
 
         if isinstance(img_size, int):
@@ -530,7 +534,7 @@ class VisionTransformerMaskClip(BaseModule):
 
         assert not (init_cfg and pretrained), \
             'init_cfg and pretrained cannot be set at the same time'
-        if isinstance(pretrained, str):
+        if isinstance(pretrained, str): # maskclip load clip weight in different way, so loading weight do in segmentor modules.
             warnings.warn('DeprecationWarning: pretrained is deprecated, '
                           'please use "init_cfg" instead')
             self.init_cfg = dict(type='Pretrained', checkpoint=pretrained)
@@ -622,6 +626,9 @@ class VisionTransformerMaskClip(BaseModule):
             raise TypeError('return_qkv must be type of bool, list or tuple')
         # for maskclip(
         self.skip_last_attn = skip_last_attn
+
+        self.do_train = do_train
+        self.freeze_layer = freeze_layer
         
     # for maskclip
     @property
@@ -677,7 +684,13 @@ class VisionTransformerMaskClip(BaseModule):
                     kaiming_init(m, mode='fan_in', bias=0.)
                 elif isinstance(m, (_BatchNorm, nn.GroupNorm, nn.LayerNorm)):
                     constant_init(m, val=1.0, bias=0.)
-
+        # add for seqtr option
+        if self.do_train:
+            if self.freeze_layer is not None: # partial freezing.
+                freeze_params(self.layers[:-self.freeze_layer])
+        else:
+            freeze_all(self) # freeze backbone, + eval mode.
+        
     def _pos_embeding(self, patched_img, hw_shape, pos_embed):
         """Positiong embeding method.
 
@@ -800,7 +813,14 @@ class VisionTransformerMaskClip(BaseModule):
                 outs.append(out)
 
         return tuple(outs)
-
+    
+    def _freeze(self):
+        """Freeze params and norm stats."""
+        for m in self.modules():
+            m.eval()
+            for param in m.parameters():
+                param.requires_grad = False
+                    
     def train(self, mode=True):
         super(VisionTransformerMaskClip, self).train(mode)
         if mode and self.norm_eval:

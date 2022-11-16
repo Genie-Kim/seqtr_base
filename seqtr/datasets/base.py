@@ -14,8 +14,7 @@ class BaseDataset(Dataset):
                  annsfile,
                  pipeline,
                  which_set='train',
-                 img_source=['coco'],
-                 word_emb_cfg=None):
+                 img_source=['coco']):
         super(BaseDataset, self).__init__()
         assert isinstance(which_set, str) and which_set in [
             'train', 'val', 'testA', 'testB', 'test',
@@ -34,10 +33,10 @@ class BaseDataset(Dataset):
 
         self.anns_all = json.load(open(annsfile, 'r'))
 
-        self.token2idx, self.idx2token, self.word_emb = tokenize(annsfile,
-                                                                 self.anns_all,
-                                                                 word_emb_cfg)
-        self.num_token = len(self.token2idx)
+        # self.token2idx, self.idx2token, self.word_emb = tokenize(annsfile,
+        #                                                          self.anns_all,
+        #                                                          word_emb_cfg)
+        # self.num_token = len(self.token2idx)
 
         if which_set == 'train':
             self._set_group_flag()
@@ -51,9 +50,12 @@ class BaseDataset(Dataset):
                 self.flag[i] = 1
 
     def __getitem__(self, index):
+        # results = {'ann': self.anns_all[self.which_set][index],
+        #            'which_set': self.which_set,
+        #            'token2idx': self.token2idx,
+        #            'imgsfile': self.imgsfile}
         results = {'ann': self.anns_all[self.which_set][index],
                    'which_set': self.which_set,
-                   'token2idx': self.token2idx,
                    'imgsfile': self.imgsfile}
 
         results = self.pipeline(results)
@@ -150,4 +152,4 @@ class Mixed(BaseDataset):
         if is_main():
             logger = get_root_logger()
             logger.info(f'Mixed-{which_set} size: {len(self)}')
-            logger.info(f'Mixed tokens: {len(self.token2idx)}')
+            # logger.info(f'Mixed tokens: {len(self.token2idx)}')

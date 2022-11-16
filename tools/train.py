@@ -2,11 +2,15 @@ import time
 import argparse
 import os.path as osp
 import torch.distributed as dist
+import warnings
+
 
 import mmcv
 from mmcv import Config, DictAction
 from mmcv.runner import get_dist_info
 from mmcv.parallel import MMDistributedDataParallel
+from mmcv.cnn.utils import revert_sync_batchnorm
+
 
 from seqtr.core import build_optimizer, build_scheduler
 from seqtr.datasets import build_dataset, build_dataloader
@@ -66,17 +70,27 @@ def main_worker(cfg):
     datasets = list(map(build_dataset, datasets_cfgs))
     dataloaders = list(map(lambda dataset: build_dataloader(cfg, dataset), datasets))
 
-    model = build_model(cfg.model,
-                        word_emb=datasets[0].word_emb,
-                        num_token=datasets[0].num_token)
+    model = build_model(cfg.model)
+    # SyncBN is not support for DP
+    if not cfg.distributed:
+        warnings.warn(
+            'SyncBN is only supported with DDP. To be compatible with DP, '
+            'we convert SyncBN to BN. Please use dist_train.sh which can '
+            'avoid this error.')
+        model = revert_sync_batchnorm(model)
+    
     if is_main():
         logger = get_root_logger()
         logger.info(model)
 
     model = model.cuda()
-    if model.vis_enc.do_train:
-        train_params = [{"params": [p for n, p in model.named_parameters() if "vis_enc" not in n and p.requires_grad]},
-                        {"params": [p for n, p in model.named_parameters() if "vis_enc" in n and p.requires_grad], "lr": cfg.optimizer_config.lr / 10.,}]
+    
+    if model.vis_enc.do_train or model.lan_enc.do_train:
+        if model.vis_enc.do_train:
+            train_params = [{"params": [p for n, p in model.named_parameters() if "vis_enc" in n and p.requires_grad], "lr": cfg.optimizer_config.lr * cfg.visenclr_multi[0],}]
+        if model.lan_enc.do_train:
+            train_params.append({"params": [p for n, p in model.named_parameters() if "lan_enc" in n and p.requires_grad], "lr": cfg.optimizer_config.lr * cfg.lanenclr_multi[0],})
+        train_params.append({"params": [p for n, p in model.named_parameters() if ("vis_enc" not in n and "lan_enc" not in n and p.requires_grad)]})
     else:
         train_params = filter(lambda p: p.requires_grad, model.parameters())
 
@@ -110,7 +124,7 @@ def main_worker(cfg):
         for _loader in dataloaders[1:]:
             if is_main():
                 logger.info("Evaluating dataset: {}".format(_loader.dataset.which_set))
-            set_d_acc, set_miou = evaluate_model(epoch, cfg, model, _loader)
+            _, set_miou = evaluate_model(epoch, cfg, model, _loader)
 
             if cfg.ema:
                 if is_main():
@@ -123,10 +137,10 @@ def main_worker(cfg):
                 d_acc += ema_set_d_acc
                 miou += ema_set_miou
             else:
-                d_acc += set_d_acc
+                # d_acc += set_d_acc
                 miou += set_miou
 
-        d_acc /= len(dataloaders[1:])
+        # d_acc /= len(dataloaders[1:])
         miou /= len(dataloaders[1:])
 
         if is_main():
@@ -142,7 +156,7 @@ def main_worker(cfg):
 
         scheduler.step()
 
-        best_d_acc = max(d_acc, best_d_acc)
+        # best_d_acc = max(d_acc, best_d_acc)
         best_miou = max(miou, best_miou)
 
         if cfg.distributed:

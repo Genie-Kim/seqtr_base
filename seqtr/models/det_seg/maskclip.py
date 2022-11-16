@@ -16,7 +16,6 @@ class MaskClip(OneStageModel):
                     attn_pooling=False, num_heads=32, **kwargs):
         super(MaskClip, self).__init__(**kwargs)
 
-        self.text_categories = text_categories
         self.text_channels = text_channels
         self.text_embeddings_path = text_embeddings_path
         self.visual_projs_path = visual_projs_path
@@ -38,17 +37,9 @@ class MaskClip(OneStageModel):
             self.c_proj = nn.Conv2d(self.in_channels, text_channels, 1)
         self.load_visual_projs()
 
-        self.ks_thresh = ks_thresh
-        self.pd_thresh = pd_thresh
-        self.attn_pooling = attn_pooling
-        self.num_heads = num_heads
-
     def init_weights(self):
         super(MaskClip, self).init_weights()
-        if self.text_embeddings_path is None:
-            nn.init.normal_(self.text_embeddings, mean=0.0, std=0.01)
-        else:
-            self.load_text_embeddings()
+        self.load_text_embeddings()
         self.load_visual_projs()
 
     def load_text_embeddings(self):
@@ -83,37 +74,12 @@ class MaskClip(OneStageModel):
             if cls_token is not None:
                 cls_token = self.proj(cls_token[:, :, None, None])[:, :, 0, 0]
         else:
-            if self.attn_pooling:
-                N, C, H, W = x.shape
-                x = x.view(N, C, -1).permute(2, 0, 1)  # NCHW -> (HW)NC
-                x = torch.cat([x.mean(dim=0, keepdim=True), x], dim=0)
-                x, _ = F.multi_head_attention_forward(
-                    query=x, key=x, value=x,
-                    embed_dim_to_check=x.shape[-1],
-                    num_heads=self.num_heads,
-                    q_proj_weight=self.q_proj.weight[:, :, 0, 0],
-                    k_proj_weight=self.k_proj.weight[:, :, 0, 0],
-                    v_proj_weight=self.v_proj.weight[:, :, 0, 0],
-                    in_proj_weight=None,
-                    in_proj_bias=torch.cat([self.q_proj.bias, self.k_proj.bias, self.v_proj.bias]),
-                    bias_k=None,
-                    bias_v=None,
-                    add_zero_attn=False,
-                    dropout_p=0,
-                    out_proj_weight=self.c_proj.weight[:, :, 0, 0],
-                    out_proj_bias=self.c_proj.bias,
-                    use_separate_proj_weight=True,
-                    training=self.training,
-                    need_weights=False
-                )
-                feat = x[1:].permute(1, 2, 0).view(N, -1, H, W)
-            else:
-                q = self.q_proj(x)
-                k = self.k_proj(x)
-                q = torch.flatten(q, start_dim=2).transpose(-2, -1)
-                k = torch.flatten(k, start_dim=2).transpose(-2, -1)
-                v = self.v_proj(x)
-                feat = self.c_proj(v)
+            q = self.q_proj(x)
+            k = self.k_proj(x)
+            q = torch.flatten(q, start_dim=2).transpose(-2, -1)
+            k = torch.flatten(k, start_dim=2).transpose(-2, -1)
+            v = self.v_proj(x)
+            feat = self.c_proj(v)
         output = self.cls_seg(feat)
         if not self.training:
             output = self.refine_output(output, k)

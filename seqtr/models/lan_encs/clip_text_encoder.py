@@ -12,6 +12,8 @@ from mmseg.models.builder import BACKBONES
 from mmseg.models.backbones import ResNet
 from mmseg.models.backbones import VisionTransformer as MMVisionTransformer
 import math
+from seqtr.models.utils.seqtr_utils import freeze_all
+
 
 class LayerNorm(nn.LayerNorm):
     """Subclass torch's LayerNorm to handle fp16."""
@@ -87,7 +89,20 @@ class CLIPTextEncoder(nn.Module):
                  transformer_width=512,
                  transformer_heads=8,
                  transformer_layers=12,
-                 pretrained=None):
+                 pretrained=None,
+                 do_train=True):
+        """_summary_
+
+        Args:
+            context_length (int, optional): _description_. Defaults to 77.
+            embed_dim (int, optional): _description_. Defaults to 1024.
+            vocab_size (int, optional): _description_. Defaults to 49408.
+            transformer_width (int, optional): fixed for vit 16, renet50, 101. Defaults to 512.
+            transformer_heads (int, optional): fixed for vit 16, renet50, 101. Defaults to 8.
+            transformer_layers (int, optional): fixed for vit 16, renet50, 101. Defaults to 12.
+            pretrained (_type_, optional): _description_. Defaults to None.
+            do_train (bool, optional): _description_. Defaults to True.
+        """
         super().__init__()
 
         self.pretrained = pretrained
@@ -106,7 +121,8 @@ class CLIPTextEncoder(nn.Module):
         self.positional_embedding = nn.Parameter(torch.empty(self.context_length, transformer_width))
         self.ln_final = LayerNorm(transformer_width)
         self.text_projection = nn.Parameter(torch.empty(transformer_width, embed_dim))
-
+        self.do_train = do_train   
+    
     def init_weights(self, pretrained=None):
         pretrained = pretrained or self.pretrained
         if isinstance(pretrained, str):
@@ -126,7 +142,11 @@ class CLIPTextEncoder(nn.Module):
              
             u, w = self.load_state_dict(state_dict, False)
             print(u, w, 'are misaligned params in text encoder')
-
+        # add for seqtr option
+        if self.do_train:
+            pass
+        else:
+            freeze_all(self)
 
     def build_attention_mask(self):
         # lazily create causal attention mask, with full attention between the vision tokens
@@ -143,6 +163,8 @@ class CLIPTextEncoder(nn.Module):
         x = self.transformer(x)
         x = x.permute(1, 0, 2)  # LND -> NLD
         x = self.ln_final(x)
+        # x.shape = [batch_size, n_ctx, transformer.width]
+        # take features from the eot embedding (eot_token is the highest number in each sequence)
         x = x[torch.arange(x.shape[0]), text.argmax(dim=-1)] @ self.text_projection
         # x = self.out_proj(x)
         return x
