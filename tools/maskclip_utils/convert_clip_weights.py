@@ -94,3 +94,4 @@ if __name__ == '__main__':
     else:
         all_model['clip'] = result_model['state_dict']
         torch.save(all_model, 'pretrain/{}_clip_weights.pth'.format(args.model))
+        torch.save(clip_model.state_dict(),'pretrain/{}.pt'.format(name_mapping[args.model].replace('/','-')))
