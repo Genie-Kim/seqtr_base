@@ -121,7 +121,10 @@ def train_model(epoch,
                             f"mIoU: {mask_iou:.2f}, " +
                             f"MaskACC@0.5-0.9: [{mask_acc[0]:.2f}, {mask_acc[1]:.2f}, {mask_acc[2]:.2f},  {mask_acc[3]:.2f},  {mask_acc[4]:.2f}]"
                             )             
-                
+                iter_num = epoch*batches+batch+1
+                cfg.writer.add_scalar('loss/loss_mask',(sum(loss_mask_list) / len(loss_mask_list)),iter_num)
+                cfg.writer.add_scalar('miou/train',(mask_iou),iter_num)
+                cfg.writer.add_scalar('vis_enc_lr',(optimizer.param_groups[0]['lr']),iter_num)
                 # logger.info(f"train - epoch [{epoch+1}]-[{batch+1}/{batches}] " +
                 #             f"time: {(time.time()- end):.2f}, data_time: {data_time:.2f}, " +
                 #             f"loss_det: {sum(loss_det_list) / len(loss_det_list) :.4f}, " +

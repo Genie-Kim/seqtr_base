@@ -60,13 +60,15 @@ def main_worker(cfg):
         logger.info(cfg.pretty_text)
         cfg.dump(
             osp.join(cfg.work_dir, f'{cfg.timestamp}_' + osp.basename(cfg.config)))
+        from tensorboardX import SummaryWriter
+        cfg.writer = SummaryWriter(cfg.work_dir)
 
     datasets_cfgs = [cfg.data.train]
     datasets_cfgs += [cfg.data.val_refcoco_unc,
                       cfg.data.val_refcocoplus_unc,
                       cfg.data.val_refcocog_umd,
                       cfg.data.val_referitgame_berkeley,
-                      cfg.data.val_flickr30k] if cfg.dataset == "Mixed" else [cfg.data.val]
+                      cfg.data.val_flickr30k] if cfg.dataset == "Mixed" else [cfg.data.val,cfg.data.testB]
     datasets = list(map(build_dataset, datasets_cfgs))
     dataloaders = list(map(lambda dataset: build_dataloader(cfg, dataset), datasets))
 
@@ -125,6 +127,8 @@ def main_worker(cfg):
             if is_main():
                 logger.info("Evaluating dataset: {}".format(_loader.dataset.which_set))
             set_miou = evaluate_model(epoch, cfg, model, _loader)
+            if is_main():
+                cfg.writer.add_scalar('miou/'+cfg.data.train.type+_loader.dataset.which_set,set_miou,epoch)
 
             if cfg.ema:
                 if is_main():
@@ -144,6 +148,7 @@ def main_worker(cfg):
         miou /= len(dataloaders[1:]) # mean score of validation sets
 
         if is_main():
+            cfg.writer.add_scalar('miou/mean_validation_'+cfg.data.train.type,miou,epoch)
             save_checkpoint(cfg.work_dir,
                             cfg.save_interval,
                             model, model_ema, optimizer, scheduler,
@@ -171,6 +176,7 @@ def main_worker(cfg):
 
     if cfg.distributed:
         dist.destroy_process_group()
+    cfg.writer.close()
 
 
 def main():

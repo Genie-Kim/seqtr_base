@@ -8,5 +8,5 @@ save_interval = 5
 resume_from = None # resume with epoch 
 load_from = None # load from just load train parameter with out scheduler or epoch.
 finetune_from = None
-debug=None
-# debug=True
+# debug=None
+debug=True
