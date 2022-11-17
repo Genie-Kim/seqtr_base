@@ -1,6 +1,7 @@
 import torch
 import clip
 import argparse
+import os
 
 
 def parse_args():
@@ -12,7 +13,7 @@ def parse_args():
 
 if __name__ == '__main__':
     args = parse_args()
-
+    os.makedirs('pretrain',exist_ok=True)
     name_mapping = {'RN50': 'RN50', 'RN101': 'RN101', 'RN50x4': 'RN50x4', \
         'RN50x16': 'RN50x16', 'RN50x64': 'RN50x64', \
         'ViT32': 'ViT-B/32', 'ViT16': 'ViT-B/16', 'ViT14': 'ViT-L/14'}
@@ -94,4 +95,4 @@ if __name__ == '__main__':
     else:
         all_model['clip'] = result_model['state_dict']
         torch.save(all_model, 'pretrain/{}_clip_weights.pth'.format(args.model))
-        torch.save(clip_model.state_dict(),'pretrain/{}.pt'.format(name_mapping[args.model].replace('/','-')))
+        clip.load(name_mapping[args.model], device='cpu', download_root='pretrain')
