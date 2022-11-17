@@ -18,7 +18,7 @@ train_pipeline = [
 ]
 val_pipeline = [
     dict(type='LoadImageAnnotationsFromFile',
-         max_token=17, with_mask=True, dataset="RefCOCOUNC",word_emb_cfg='clip'),
+         max_token=17, with_mask=True, dataset="RefCOCOUNC", word_emb_cfg=dict(type='clip')),
     dict(type='Resize', img_scale=(640, 640)),
     dict(type='Normalize', **img_norm_cfg),
     # dict(type='Pad', size_divisor=32),
@@ -28,7 +28,6 @@ val_pipeline = [
 ]
 test_pipeline = val_pipeline.copy()
 
-word_emb_cfg = dict(type='clip')
 data = dict(
     samples_per_gpu=2,
     workers_per_gpu=4,

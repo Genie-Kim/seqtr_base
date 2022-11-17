@@ -129,7 +129,7 @@ def save_checkpoint(work_dir, interval, model, model_ema, optimizer, scheduler, 
     if model_ema is not None:
         checkpoint.update({'ema_state_dict': model_ema.shadow})
     latest_path = osp.join(work_dir, "latest.pth")
-    det_best_path = osp.join(work_dir, "det_best.pth")
+    # det_best_path = osp.join(work_dir, "det_best.pth")
     segm_best_path = osp.join(work_dir, "segm_best.pth")
     torch.save(checkpoint, latest_path)
     if is_main():
@@ -137,10 +137,10 @@ def save_checkpoint(work_dir, interval, model, model_ema, optimizer, scheduler, 
             f"saved epoch {epoch} checkpoint at {latest_path}")
     if interval > 0 and epoch % interval == 0:
         torch.save(checkpoint, osp.join(work_dir, f'epoch_{epoch}.pth'))
-    if checkpoint['d_acc'] > checkpoint['best_d_acc']:
-        shutil.copyfile(latest_path, det_best_path)
-        if is_main():
-            logger.info(f"saved epoch {epoch} checkpoint at {det_best_path}")
+    # if checkpoint['d_acc'] > checkpoint['best_d_acc']:
+    #     shutil.copyfile(latest_path, det_best_path)
+    #     if is_main():
+    #         logger.info(f"saved epoch {epoch} checkpoint at {det_best_path}")
     if checkpoint['miou'] > checkpoint['best_miou']:
         shutil.copyfile(latest_path, segm_best_path)
         if is_main():

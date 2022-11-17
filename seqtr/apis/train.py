@@ -133,3 +133,5 @@ def train_model(epoch,
                 #             )
 
         end = time.time()
+        if cfg.debug is not None:
+            break

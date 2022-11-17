@@ -124,7 +124,7 @@ def main_worker(cfg):
         for _loader in dataloaders[1:]:
             if is_main():
                 logger.info("Evaluating dataset: {}".format(_loader.dataset.which_set))
-            _, set_miou = evaluate_model(epoch, cfg, model, _loader)
+            set_miou = evaluate_model(epoch, cfg, model, _loader)
 
             if cfg.ema:
                 if is_main():
@@ -141,18 +141,25 @@ def main_worker(cfg):
                 miou += set_miou
 
         # d_acc /= len(dataloaders[1:])
-        miou /= len(dataloaders[1:])
+        miou /= len(dataloaders[1:]) # mean score of validation sets
 
         if is_main():
             save_checkpoint(cfg.work_dir,
                             cfg.save_interval,
                             model, model_ema, optimizer, scheduler,
                             {'epoch': epoch,
-                             'd_acc': d_acc,
                              'miou': miou,
-                             'best_d_acc': best_d_acc,
                              'best_miou': best_miou,
                              'amp': cfg.use_fp16})
+            # save_checkpoint(cfg.work_dir,
+            #                 cfg.save_interval,
+            #                 model, model_ema, optimizer, scheduler,
+            #                 {'epoch': epoch,
+            #                  'd_acc': d_acc,
+            #                  'miou': miou,
+            #                  'best_d_acc': best_d_acc,
+            #                  'best_miou': best_miou,
+            #                  'amp': cfg.use_fp16})
 
         scheduler.step()
 

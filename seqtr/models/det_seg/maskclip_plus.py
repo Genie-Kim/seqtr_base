@@ -195,11 +195,7 @@ class MaskClipPlus(BaseModel):
             
         text_emb = self.lan_enc(ref_expr).unsqueeze(1)
         output = torch.einsum('nchw,nlc->nlhw', [feat, text_emb])
-        
-        text_embeddings = self.lan_enc(ref_expr)
-        
-        output = torch.einsum('nchw,lc->nlhw', [feat, text_embeddings])
-
+                
         seg_logits = resize(
             input=output,
             size=img.shape[-2:],

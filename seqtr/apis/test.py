@@ -75,28 +75,28 @@ def evaluate_model(epoch,
 
             if not cfg.distributed:
                 inputs = extract_data(inputs)
-
+            inputs.pop('gt_mask')
             predictions = model(**inputs,
                                 return_loss=False,
                                 rescale=False,
                                 with_bbox=with_bbox,
                                 with_mask=with_mask)
 
-            pred_bboxes = predictions.pop('pred_bboxes')
+            # pred_bboxes = predictions.pop('pred_bboxes')
             pred_masks = predictions.pop('pred_masks')
 
-            batch_det_acc, batch_mask_iou, batch_mask_acc_at_thrs = accuracy(
-                pred_bboxes, gt_bbox, pred_masks, gt_mask, is_crowd=is_crowd, device=device)
+            _, batch_mask_iou, batch_mask_acc_at_thrs = accuracy(
+                None, gt_bbox, pred_masks, gt_mask, is_crowd=is_crowd, device=device)
             if cfg.distributed:
-                batch_det_acc = reduce_mean(batch_det_acc)
+                # batch_det_acc = reduce_mean(batch_det_acc)
                 batch_mask_iou = reduce_mean(batch_mask_iou)
                 batch_mask_acc_at_thrs = reduce_mean(batch_mask_acc_at_thrs)
 
-            det_acc_list.append(batch_det_acc.item())
+            # det_acc_list.append(batch_det_acc.item())
             mask_iou_list.append(batch_mask_iou)
             mask_acc_list.append(batch_mask_acc_at_thrs)
 
-            det_acc = sum(det_acc_list) / len(det_acc_list)
+            # det_acc = sum(det_acc_list) / len(det_acc_list)
             mask_iou = torch.cat(mask_iou_list).mean().item()
             mask_acc = torch.vstack(
                 mask_acc_list).mean(dim=0).tolist()
@@ -105,11 +105,18 @@ def evaluate_model(epoch,
                     logger = get_root_logger()
                     logger.info(f"validate - epoch [{epoch+1}]-[{batch+1}/{batches}] " +
                                 f"time: {(time.time() - end):.2f}, " +
-                                f"DetACC@0.5: {det_acc:.2f}, " +
                                 f"mIoU: {mask_iou:.2f}, " +
                                 f"MaskACC@0.5-0.9: [{mask_acc[0]:.2f}, {mask_acc[1]:.2f}, {mask_acc[2]:.2f},  {mask_acc[3]:.2f},  {mask_acc[4]:.2f}]"
                                 )
+                    # logger.info(f"validate - epoch [{epoch+1}]-[{batch+1}/{batches}] " +
+                    #             f"time: {(time.time() - end):.2f}, " +
+                    #             f"DetACC@0.5: {det_acc:.2f}, " +
+                    #             f"mIoU: {mask_iou:.2f}, " +
+                    #             f"MaskACC@0.5-0.9: [{mask_acc[0]:.2f}, {mask_acc[1]:.2f}, {mask_acc[2]:.2f},  {mask_acc[3]:.2f},  {mask_acc[4]:.2f}]"
+                    #             )
 
             end = time.time()
+            if cfg.debug is not None:
+                break
 
-    return det_acc, mask_iou
+    return mask_iou
