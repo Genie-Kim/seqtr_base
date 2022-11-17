@@ -225,5 +225,5 @@ wget https://github.com/explosion/spacy-models/releases/download/en_vectors_web_
 pip install en_vectors_web_lg-2.1.0.tar.gz
 pip install -v -e .
 conda install -y scikit-image
-pip install mmsegmentation
+pip install mmsegmentation tensorboardX
 ```
