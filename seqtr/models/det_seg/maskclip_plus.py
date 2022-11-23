@@ -40,8 +40,6 @@ class MaskClipPlus(BaseModel):
         if vit:
             self.proj = nn.Conv2d(clip_channels, text_channels, 1, bias=False)
         else:
-            self.q_proj = nn.Conv2d(clip_channels, clip_channels, 1)
-            self.k_proj = nn.Conv2d(clip_channels, clip_channels, 1)
             self.v_proj = nn.Conv2d(clip_channels, clip_channels, 1)
             self.c_proj = nn.Conv2d(clip_channels, text_channels, 1)
                   
@@ -65,9 +63,10 @@ class MaskClipPlus(BaseModel):
         # because we don't use Basedecoder's cls_seg funciton, this doesn't matter.        
         del self.decode_module.conv_seg
         del self.decode_module.dropout
-        
+              
         if freeze_proj_vit:
             self._freeze()
+
 
     # def load_text_embeddings(self):
     #     loaded = torch.load(self.text_embeddings_path, map_location='cuda')
@@ -78,7 +77,7 @@ class MaskClipPlus(BaseModel):
     def load_clipweight_imgenc(self):
         loaded = torch.load(self.clip_weights_path, map_location='cuda')
         self.vis_enc.load_state_dict(loaded['clip'])
-        attrs = ['proj'] if self.vit else ['q_proj', 'k_proj', 'v_proj', 'c_proj']
+        attrs = ['proj'] if self.vit else ['v_proj', 'c_proj']
         for attr in attrs:
             current_attr = getattr(self, attr)
             state_dict = loaded[attr]
@@ -91,7 +90,7 @@ class MaskClipPlus(BaseModel):
     def _freeze(self):
         """Freeze params and norm stats."""
         # super(MaskClipPlus, self)._freeze()
-        attrs = ['proj'] if self.vit else ['q_proj', 'k_proj', 'v_proj', 'c_proj']
+        attrs = ['proj'] if self.vit else ['v_proj', 'c_proj']
         attrs.append('vis_enc')
         for attr in attrs:
             i = getattr(self, attr)
@@ -218,10 +217,6 @@ class MaskClipPlus(BaseModel):
             if cls_token is not None:
                 cls_token = self.proj(cls_token[:, :, None, None])[:, :, 0, 0]
         else:
-            q = self.q_proj(x)
-            k = self.k_proj(x)
-            q = torch.flatten(q, start_dim=2).transpose(-2, -1)
-            k = torch.flatten(k, start_dim=2).transpose(-2, -1)
             v = self.v_proj(x)
             feat = self.c_proj(v)
         return feat

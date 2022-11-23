@@ -6,7 +6,7 @@ model = dict(
     dropout_ratio=0,
     text_categories=1,
     text_channels=512,
-    clip_channels=768,
+    clip_channels=2048,
     clip_weights_path='pretrain/RN101_clip_weights.pth',
     reset_counter=True,
     loss_decode=dict(type='CrossEntropyLoss', use_sigmoid=True, loss_weight=1.0,avg_non_ignore=True),
@@ -46,10 +46,10 @@ model = dict(
 optimizer_config = dict(
     type='AdamW',
     lr=1e-4, # this brings from CRIS(CVPR'22) --> decode head lr
-    betas=(0.9, 0.98), # for vit
-    eps=1e-6, # for vit
-    # betas=(0.9, 0.999), # for resnet
-    # eps=1e-8, # for resnet
+    # betas=(0.9, 0.98), # for vit
+    # eps=1e-6, # for vit
+    betas=(0.9, 0.999), # for resnet
+    eps=1e-8, # for resnet
     weight_decay=0.2,
     amsgrad=True
 )
