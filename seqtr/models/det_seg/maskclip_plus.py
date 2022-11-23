@@ -44,14 +44,7 @@ class MaskClipPlus(BaseModel):
             self.k_proj = nn.Conv2d(clip_channels, clip_channels, 1)
             self.v_proj = nn.Conv2d(clip_channels, clip_channels, 1)
             self.c_proj = nn.Conv2d(clip_channels, text_channels, 1)
-            
-        self.lan_train = lan_enc.do_train
-        super(MaskClipPlus, self).init_weights()
-        del self.decode_module.loss_decode
-        # because we don't use Basedecoder's cls_seg funciton, this doesn't matter.        
-        del self.decode_module.conv_seg
-        del self.decode_module.dropout
-        
+                  
         self.align_corners = False
         if isinstance(loss_decode, dict):
             self.loss_decode = build_loss(loss_decode)
@@ -62,15 +55,19 @@ class MaskClipPlus(BaseModel):
         else:
             raise TypeError(f'loss_decode must be a dict or sequence of dict,\
                 but got {type(loss_decode)}')
+            
         self.ignore_index = 255
         self.threshold = threshold        
+        self.lan_train = lan_enc.do_train
+        super(MaskClipPlus, self).init_weights()
+        self.load_clipweight_imgenc()
+        del self.decode_module.loss_decode
+        # because we don't use Basedecoder's cls_seg funciton, this doesn't matter.        
+        del self.decode_module.conv_seg
+        del self.decode_module.dropout
         
         if freeze_proj_vit:
             self._freeze()
-       
-    def init_weights(self):
-        # self.load_text_embeddings()
-        self.load_clip_weights()
 
     # def load_text_embeddings(self):
     #     loaded = torch.load(self.text_embeddings_path, map_location='cuda')
@@ -78,7 +75,7 @@ class MaskClipPlus(BaseModel):
     #     print_log(f'Loaded text embeddings from {self.text_embeddings_path}', logger=get_root_logger())
         
         
-    def load_clip_weights(self):
+    def load_clipweight_imgenc(self):
         loaded = torch.load(self.clip_weights_path, map_location='cuda')
         self.vis_enc.load_state_dict(loaded['clip'])
         attrs = ['proj'] if self.vit else ['q_proj', 'k_proj', 'v_proj', 'c_proj']
@@ -95,7 +92,7 @@ class MaskClipPlus(BaseModel):
         """Freeze params and norm stats."""
         # super(MaskClipPlus, self)._freeze()
         attrs = ['proj'] if self.vit else ['q_proj', 'k_proj', 'v_proj', 'c_proj']
-        attrs.append('clip')
+        attrs.append('vis_enc')
         for attr in attrs:
             i = getattr(self, attr)
             for m in i.modules():

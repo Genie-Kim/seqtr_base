@@ -29,8 +29,8 @@ val_pipeline = [
 test_pipeline = val_pipeline.copy()
 
 data = dict(
-    samples_per_gpu=2,
-    workers_per_gpu=4,
+    samples_per_gpu=15,
+    workers_per_gpu=8,
     train=dict(
         type=dataset,
         which_set='train',

@@ -9,6 +9,7 @@ from mmcv.utils.parrots_wrapper import _BatchNorm
 
 from ..builder import VIS_ENCODERS
 from ..utils.res_layer import ResLayer
+from seqtr.models.utils.seqtr_utils import freeze_params, freeze_all
 
 
 class BasicBlock(BaseModule):
@@ -734,5 +735,15 @@ class ResNetMaskClip(ResNet):
     def __init__(self, **kwargs):
         if 'style' in kwargs:
             kwargs.pop('style')
-        super(ResNetClip, self).__init__(
+        if 'do_train' in kwargs:
+            self.do_train = kwargs.pop('do_train')
+        if 'freeze_layer' in kwargs:
+            self.freeze_layer = kwargs.pop('freeze_layer')
+        super(ResNetMaskClip, self).__init__(
             deep_stem=True, avg_down=True, style='clip', **kwargs)
+        # add for seqtr option
+        if self.do_train:
+            if self.freeze_layer is not None: # partial freezing.
+                freeze_params(self.layers[:-self.freeze_layer])
+        else:
+            freeze_all(self) # freeze backbone, + eval mode.
